@@ -935,6 +935,7 @@ function badgeHtml(status){
 // ============================================================
 function showPage(page){
   var mobTab=document.querySelector('#mob-bar .mob-tab[data-page="'+page+'"]');
+  if(!mobTab && (page==='articles'||page==='strojevi')) mobTab = document.getElementById('mob-tab-more');
   if(mobTab) setMobActive(mobTab);
   CURRENT_PAGE = page;
   document.querySelectorAll('.nav-item').forEach(function(el){
@@ -2701,13 +2702,20 @@ function toast(msg, type){
   wrap.appendChild(t);
   setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); },300); }, 2800);
 }
+var _confirmCbs = [];
+function _runConfirmCb(idx){
+  var cb = _confirmCbs[idx];
+  _confirmCbs[idx] = null;
+  if(typeof cb === 'function') cb();
+}
 function confirmToast(msg, cb){
   var wrap = document.getElementById('toast-wrap');
   var t = document.createElement('div');
   t.className = 'toast';
   t.style.pointerEvents='all';
   t.style.gap='10px';
-  t.innerHTML = '<span>'+msg+'</span> <button onclick="this.closest(\'.toast\').remove();('+cb.toString()+')()" style="background:var(--red);color:#fff;border:0;border-radius:8px;padding:4px 10px;font-weight:600;cursor:pointer;font-size:13px">Obriši</button><button onclick="this.closest(\'.toast\').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px">Odustani</button>';
+  var cbIdx = _confirmCbs.push(cb) - 1;
+  t.innerHTML = '<span>'+msg+'</span> <button onclick="this.closest(\'.toast\').remove();_runConfirmCb('+cbIdx+')" style="background:var(--red);color:#fff;border:0;border-radius:8px;padding:4px 10px;font-weight:600;cursor:pointer;font-size:13px">Obriši</button><button onclick="this.closest(\'.toast\').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px">Odustani</button>';
   wrap.appendChild(t);
   setTimeout(function(){ if(t.parentNode){t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); },300);} }, 5000);
 }
@@ -2804,6 +2812,18 @@ function setMobActive(el){
   document.querySelectorAll('#mob-bar .mob-tab').forEach(function(t){t.classList.remove('active');});
   if(el) el.classList.add('active');
 }
+function openMoreMenu(){
+  var html = '<div style="display:flex;flex-direction:column;gap:8px">'+
+    '<button class="topbar-btn btn-ghost" style="justify-content:flex-start;padding:14px 16px;width:100%;font-size:14px" onclick="closeModal();showPage(\'articles\')">'+
+      '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>'+
+      '&nbsp;&nbsp;Artikli</button>'+
+    '<button class="topbar-btn btn-ghost" style="justify-content:flex-start;padding:14px 16px;width:100%;font-size:14px" onclick="closeModal();showPage(\'strojevi\')">'+
+      '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><rect x="7" y="9" width="10" height="6" rx="1"/><circle cx="12" cy="18" r="1"/></svg>'+
+      '&nbsp;&nbsp;Vending aparati</button>'+
+  '</div>';
+  openModal('IZBORNIK', 'Više opcija', html);
+  setMobActive(document.getElementById('mob-tab-more'));
+}
 function updateMobBadges(){
   var pendOrders = DB.orders.filter(function(o){return o.status==='draft'||o.status==='sent';}).length;
   var pendIzd = DB.izdatnice.filter(function(i){return i.status==='draft'||i.status==='sent';}).length;
@@ -2832,6 +2852,10 @@ function updateMobBadges(){
   <a class="mob-tab" data-page="fakture" onclick="showPage('fakture');setMobActive(this)">
     <div class="mob-tab-icon"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
     Fakture
+  </a>
+  <a class="mob-tab" id="mob-tab-more" onclick="openMoreMenu()">
+    <div class="mob-tab-icon"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg></div>
+    Više
   </a>
   <a class="mob-tab" data-page="settings" onclick="showPage('settings');setMobActive(this)">
     <div class="mob-tab-icon"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
