@@ -2416,6 +2416,11 @@ function renderSettings(){
   '<div class="card" style="margin-top:20px"><div class="card-header"><div class="card-title">Opće postavke</div></div><div class="card-body">'+
     '<div class="form-group"><label>Zadana napomena u narudžbama</label><textarea id="s-dn" rows="2">'+esc(cfg.defaultNote)+'</textarea></div>'+
   '</div></div>'+
+  '<div class="card" style="margin-top:20px"><div class="card-header"><div class="card-title">Numeracija dokumenata</div></div><div class="card-body">'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:12px">Sljedeći broj narudžbe: <b>NAR:'+String(DB.counters.orders+1).padStart(2,'0')+'-'+new Date().getFullYear()+'</b> &nbsp;·&nbsp; Sljedeći broj izdatnice: <b>IZD:'+String(DB.counters.izdatnice+1).padStart(2,'0')+'-'+new Date().getFullYear()+'</b></div>'+
+    '<button class="topbar-btn btn-ghost" style="color:var(--red)" onclick="resetCounters()">Resetiraj numeraciju na 1</button>'+
+    '<div style="font-size:12px;color:var(--muted);margin-top:6px">Radi samo kad su sve narudžbe i izdatnice obrisane (prazna tablica).</div>'+
+  '</div></div>'+
   '<div style="margin-top:16px;display:flex;gap:10px">'+
     '<button class="topbar-btn btn-primary" onclick="saveSettings()">Spremi postavke</button>'+
     '<button class="topbar-btn btn-ghost" onclick="exportBackup()">Izvoz podataka (JSON)</button>'+
@@ -2425,6 +2430,19 @@ function renderSettings(){
   document.getElementById('content').innerHTML = html;
 }
 
+function resetCounters(){
+  if(DB.orders.length || DB.izdatnice.length){
+    toast('Prvo obriši sve narudžbe i izdatnice','err');
+    return;
+  }
+  confirmToast('Resetirati numeraciju na 1?', function(){
+    DB.counters.orders = 0;
+    DB.counters.izdatnice = 0;
+    saveDB();
+    renderSettings();
+    toast('Numeracija je resetirana','ok');
+  });
+}
 function saveSettings(){
   DB.settings.buyerName = document.getElementById('s-bn').value;
   DB.settings.buyerOib = document.getElementById('s-bo').value;
