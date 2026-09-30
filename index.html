@@ -603,7 +603,7 @@ textarea{resize:vertical;min-height:70px}
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       <span>Odjava</span>
     </div>
-    <div class="sb-version">Perla Notte Narudžbenica · v1.2.0 (30.09.2026)</div>
+    <div class="sb-version">Perla Notte Narudžbenica · v1.3.0 (30.09.2026)</div>
   </div>
 </div>
 
@@ -674,7 +674,7 @@ function freshDB(){
 
 var DB = freshDB();
 var CURRENT_STORE = 'all';
-var APP_VERSION = '1.2.0';
+var APP_VERSION = '1.3.0';
 var APP_VERSION_DATE = '30.09.2026';
 
 // ============================================================
@@ -751,7 +751,8 @@ function loadDB(){
     if(s){ var d = JSON.parse(s); DB = Object.assign(freshDB(), d); }
   }catch(e){}
 }
-function saveDB(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(DB)); }catch(e){} scheduleSupabasePush(); }
+function saveDB(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(DB)); }catch(e){} try{ localStorage.setItem(SB_DIRTY_KEY,'1'); }catch(e){} scheduleSupabasePush(); }
+function saveDBLocalOnly(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(DB)); }catch(e){} }
 
 // ============================================================
 // SUPABASE SINKRONIZACIJA (Perla Notte — projekt "perla-haccp")
@@ -776,6 +777,7 @@ function isRemoteDataEmpty(d){
 }
 
 var SB_SYNC_KEY = 'pn5_syncedAt';
+var SB_DIRTY_KEY = 'pn5_dirty';
 
 function pushToSupabase(){
   if(!sbClient) return Promise.resolve();
@@ -783,7 +785,10 @@ function pushToSupabase(){
   return sbClient.from(SB_TABLE).upsert({ id: SB_ROW_ID, data: DB, updated_at: ts })
     .then(function(res){
       if(res.error){ console.warn('Supabase spremanje nije uspjelo:', res.error); }
-      else { try{ localStorage.setItem(SB_SYNC_KEY, ts); }catch(e){} }
+      else {
+        try{ localStorage.setItem(SB_SYNC_KEY, ts); }catch(e){}
+        try{ localStorage.removeItem(SB_DIRTY_KEY); }catch(e){}
+      }
     })
     .catch(function(e){ console.warn('Supabase spremanje nije uspjelo:', e); });
 }
@@ -810,19 +815,28 @@ function syncFromSupabase(){
       }
       var localSyncedAt = null;
       try{ localSyncedAt = localStorage.getItem(SB_SYNC_KEY); }catch(e){}
+      var isDirty = false;
+      try{ isDirty = localStorage.getItem(SB_DIRTY_KEY) === '1'; }catch(e){}
       var remoteIsNewer = !localSyncedAt || (remoteUpdatedAt && new Date(remoteUpdatedAt).getTime() > new Date(localSyncedAt).getTime());
-      if(remoteIsNewer){
-        // Netko (drugi uređaj, ili raniji sync na ovom) je spremio noviju verziju na poslužitelj — ona je izvor istine
-        DB = Object.assign(freshDB(), remote);
-        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }catch(e){}
-        try{ localStorage.setItem(SB_SYNC_KEY, remoteUpdatedAt || new Date().toISOString()); }catch(e){}
-        try{ toast('Povezano s bazom — podaci sinkronizirani', 'ok'); }catch(e){}
-      } else {
-        // Naše lokalne izmjene (npr. brisanje) još nisu stigle na poslužitelj prije osvježavanja stranice — šaljemo ih sada
+
+      if(isDirty && !remoteIsNewer){
+        // Ovaj uređaj ima stvarnu lokalnu izmjenu koja još nije stigla na poslužitelj
+        // (npr. prekinuto prije nego je debounced push stigao) — šaljemo je sada.
         return pushToSupabase().then(function(){
           try{ toast('Povezano s bazom — lokalne izmjene poslane na server', 'ok'); }catch(e){}
         });
       }
+      if(remoteIsNewer){
+        // Netko (drugi uređaj, ili raniji sync) je spremio noviju verziju na poslužitelj — ona je izvor istine.
+        // Namjerno se NE šalje lokalna verzija natrag u ovom slučaju (čak i ako je ovaj uređaj "dirty") —
+        // upravo to je uzrokovalo da uređaj bez stvarnih izmjena pregazi tuđu noviju izmjenu na serveru.
+        DB = Object.assign(freshDB(), remote);
+        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }catch(e){}
+        try{ localStorage.setItem(SB_SYNC_KEY, remoteUpdatedAt || new Date().toISOString()); }catch(e){}
+        try{ localStorage.removeItem(SB_DIRTY_KEY); }catch(e){}
+        try{ toast('Povezano s bazom — podaci sinkronizirani', 'ok'); }catch(e){}
+      }
+      // inače: lokalno je već usklađeno s poslužiteljem, nema potrebe ni slati ni povlačiti ništa
     })
     .catch(function(e){
       console.warn('Supabase sinkronizacija nije uspjela, radim lokalno (offline):', e);
@@ -2557,7 +2571,7 @@ function deleteStroj(id){
 // ============================================================
 function renderSettings(){
   var cfg = DB.settings;
-  var html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Verzija aplikacije: <b style="color:var(--text2)">v1.2.0</b> &nbsp;·&nbsp; 30.09.2026</div>'+
+  var html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Verzija aplikacije: <b style="color:var(--text2)">v1.3.0</b> &nbsp;·&nbsp; 30.09.2026</div>'+
   '<div class="form-grid-3" style="grid-template-columns:1fr 1fr;gap:20px">'+
   '<div class="card"><div class="card-header"><div class="card-title">Kupac (Perla Notte)</div></div><div class="card-body"><div class="form-grid">'+
     '<div class="form-group full"><label>Naziv tvrtke</label><input id="s-bn" value="'+esc(cfg.buyerName)+'"></div>'+
@@ -2937,7 +2951,7 @@ function startApp(){
     var AUTO_PLACEHOLDERS = ['FIT STUDIO SPLIT','POWER GYM','ENERGY FIT','SPORT CLUB','OLIMP GYM','TITAN FITNESS','PRIME SPORT','FLEX GYM','IRON HOUSE','APEX FITNESS','CROSSFIT CENTER','BODY LAB','WELLNESS CLUB','ARENA SPORT'];
     DB.strojevi = DB.strojevi.filter(function(s){ return s.id==='VS-001' || !AUTO_PLACEHOLDERS.includes(s.name) || s.addr; });
     if(!DB.fakture) DB.fakture = [];
-    saveDB();
+    saveDBLocalOnly();
     populateStoreSelect();
     refreshLogo();
     renderPeriodBar();
@@ -3014,7 +3028,7 @@ function openMoreMenu(){
     '<button class="topbar-btn btn-ghost" style="justify-content:flex-start;padding:14px 16px;width:100%;font-size:14px;color:var(--red)" onclick="closeModal();authSignOut()">'+
       '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'+
       '&nbsp;&nbsp;Odjava</button>'+
-    '<div class="sb-version" style="padding-top:14px">Perla Notte Narudžbenica · v1.2.0 (30.09.2026)</div>'+
+    '<div class="sb-version" style="padding-top:14px">Perla Notte Narudžbenica · v1.3.0 (30.09.2026)</div>'+
   '</div>';
   openModal('IZBORNIK', 'Više opcija', html);
   setMobActive(document.getElementById('mob-tab-more'));
