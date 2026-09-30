@@ -603,7 +603,7 @@ textarea{resize:vertical;min-height:70px}
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       <span>Odjava</span>
     </div>
-    <div class="sb-version">Perla Notte Narudžbenica · v1.0.0 (30.09.2026)</div>
+    <div class="sb-version">Perla Notte Narudžbenica · v1.1.1 (30.09.2026)</div>
   </div>
 </div>
 
@@ -674,7 +674,7 @@ function freshDB(){
 
 var DB = freshDB();
 var CURRENT_STORE = 'all';
-var APP_VERSION = '1.0.0';
+var APP_VERSION = '1.1.1';
 var APP_VERSION_DATE = '30.09.2026';
 
 // ============================================================
@@ -2557,7 +2557,7 @@ function deleteStroj(id){
 // ============================================================
 function renderSettings(){
   var cfg = DB.settings;
-  var html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Verzija aplikacije: <b style="color:var(--text2)">v1.0.0</b> &nbsp;·&nbsp; 30.09.2026</div>'+
+  var html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Verzija aplikacije: <b style="color:var(--text2)">v1.1.1</b> &nbsp;·&nbsp; 30.09.2026</div>'+
   '<div class="form-grid-3" style="grid-template-columns:1fr 1fr;gap:20px">'+
   '<div class="card"><div class="card-header"><div class="card-title">Kupac (Perla Notte)</div></div><div class="card-body"><div class="form-grid">'+
     '<div class="form-group full"><label>Naziv tvrtke</label><input id="s-bn" value="'+esc(cfg.buyerName)+'"></div>'+
@@ -2906,6 +2906,9 @@ window.onload = function(){
   document.documentElement.setAttribute('data-theme', theme);
   updateThemeBtn();
   authInit();
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(function(e){ console.warn('SW registracija nije uspjela:', e); });
+  }
 };
 
 function startApp(){
@@ -3004,7 +3007,7 @@ function openMoreMenu(){
     '<button class="topbar-btn btn-ghost" style="justify-content:flex-start;padding:14px 16px;width:100%;font-size:14px;color:var(--red)" onclick="closeModal();authSignOut()">'+
       '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'+
       '&nbsp;&nbsp;Odjava</button>'+
-    '<div class="sb-version" style="padding-top:14px">Perla Notte Narudžbenica · v1.0.0 (30.09.2026)</div>'+
+    '<div class="sb-version" style="padding-top:14px">Perla Notte Narudžbenica · v1.1.1 (30.09.2026)</div>'+
   '</div>';
   openModal('IZBORNIK', 'Više opcija', html);
   setMobActive(document.getElementById('mob-tab-more'));
