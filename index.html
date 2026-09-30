@@ -11,6 +11,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';}</script>
 <style>
 /* ===== APPLE DESIGN SYSTEM (HACCP style) ===== */
 :root{
@@ -1134,6 +1136,8 @@ function renderOrders(){
     '<button class="topbar-btn btn-ghost" onclick="exportOrdersExcel()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg> Excel</button>'+
     '<button class="topbar-btn btn-ghost" onclick="exportOrdersCSV()">CSV</button>'+
     '<button class="topbar-btn btn-ghost" onclick="printOrdersList()" style="color:var(--red)"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg> PDF</button>'+
+    '<button class="topbar-btn btn-ghost" onclick="document.getElementById(\'pdf-order-input\').click()" style="color:var(--blue)"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> Učitaj PDF narudžbe</button>'+
+    '<input type="file" id="pdf-order-input" accept="application/pdf" style="display:none" onchange="handlePdfOrderUpload(event)">'+
     '</div>'+
   '</div>';
 
@@ -1188,6 +1192,142 @@ function deleteOrder(id){
   DB.orders = DB.orders.filter(function(o){ return o.id!==id; });
   saveDB(); renderOrders();
   });
+}
+
+// ============================================================
+// PDF IMPORT NARUDŽBE (iz HACCP terenske aplikacije)
+// ============================================================
+function normalizeNameForMatch(s){
+  return (s||'').toString().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+function matchProductByName(name){
+  var n = normalizeNameForMatch(name);
+  if(!n) return null;
+  var exact = DB.products.find(function(p){ return normalizeNameForMatch(p.name)===n; });
+  if(exact) return exact;
+  var partial = DB.products.find(function(p){
+    var pn = normalizeNameForMatch(p.name);
+    return pn.indexOf(n)!==-1 || n.indexOf(pn)!==-1;
+  });
+  return partial || null;
+}
+function parsePdfNumber(s){
+  if(!s) return 0;
+  var m = String(s).replace(/\./g,'').replace(',', '.').match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : 0;
+}
+function pdfClusterColBounds(items){
+  var sorted = items.slice().sort(function(a,b){ return a.x-b.x; });
+  var bounds = []; var lastX = null;
+  sorted.forEach(function(it){
+    if(lastX===null || (it.x-lastX)>25) bounds.push(it.x);
+    lastX = it.x;
+  });
+  return bounds;
+}
+function pdfColIndexForX(x, bounds){
+  var idx = 0;
+  for(var i=0;i<bounds.length;i++){ if(x >= bounds[i]-5) idx = i; }
+  return idx;
+}
+function pdfGroupRows(items){
+  var rows = []; var tol = 3;
+  items.forEach(function(it){
+    var row = rows.find(function(r){ return Math.abs(r.y-it.y)<tol; });
+    if(!row){ row = {y:it.y, items:[]}; rows.push(row); }
+    row.items.push(it);
+  });
+  rows.forEach(function(r){ r.items.sort(function(a,b){ return a.x-b.x; }); });
+  rows.sort(function(a,b){ return b.y-a.y; });
+  return rows.map(function(r){
+    return { y:r.y, items:r.items, text: r.items.map(function(i){ return i.str; }).join(' ').replace(/\s+/g,' ').trim() };
+  }).filter(function(l){ return l.text; });
+}
+function pdfExtractOrderData(items){
+  var lines = pdfGroupRows(items);
+  var fullText = lines.map(function(l){ return l.text; }).join('\n');
+  var storeMatch = fullText.match(/VS-\d+/);
+  var storeId = storeMatch ? storeMatch[0] : null;
+  var headerIdx = -1;
+  for(var i=0;i<lines.length;i++){
+    if(/artikl/i.test(lines[i].text) && /pakiranj/i.test(lines[i].text)){ headerIdx = i; break; }
+  }
+  var matched = [], unmatched = [];
+  if(headerIdx===-1) return { storeId:storeId, matched:matched, unmatched:unmatched, fullText:fullText, error:'Tablica artikala nije pronađena u PDF-u' };
+  var bounds = pdfClusterColBounds(lines[headerIdx].items);
+  for(var i2=headerIdx+1; i2<lines.length; i2++){
+    var ln = lines[i2];
+    if(/^ukupno\b/i.test(ln.text)) break;
+    if(!ln.items.length) continue;
+    var buckets = {};
+    ln.items.forEach(function(it){
+      var ci = pdfColIndexForX(it.x, bounds);
+      buckets[ci] = (buckets[ci]?buckets[ci]+' ':'') + it.str;
+    });
+    var colTexts = [];
+    for(var c=0;c<bounds.length;c++) colTexts.push((buckets[c]||'').trim());
+    var flavorText = colTexts[1] || colTexts[0] || '';
+    var pakiranjeText = colTexts[2] || '';
+    var komadaText = colTexts[3] || '';
+    if(!flavorText) continue;
+    var kgKom = parsePdfNumber(pakiranjeText) || 0;
+    var kom = parseInt(parsePdfNumber(komadaText)) || 1;
+    var prod = matchProductByName(flavorText);
+    var entry = { rawName:flavorText, kgKom:kgKom, kom:kom };
+    if(prod){ entry.prod = prod; matched.push(entry); } else { unmatched.push(entry); }
+  }
+  return { storeId:storeId, matched:matched, unmatched:unmatched, fullText:fullText };
+}
+async function parsePdfOrderFile(file){
+  if(!window.pdfjsLib) throw new Error('PDF čitač nije učitan (provjerite internetsku vezu)');
+  var buf = await file.arrayBuffer();
+  var pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  var allItems = [];
+  for(var p=1; p<=pdf.numPages; p++){
+    var page = await pdf.getPage(p);
+    var content = await page.getTextContent();
+    content.items.forEach(function(it){
+      if(it.str && it.str.trim()) allItems.push({ str:it.str, x:it.transform[4], y:it.transform[5] });
+    });
+  }
+  return pdfExtractOrderData(allItems);
+}
+function handlePdfOrderUpload(ev){
+  var file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if(!file) return;
+  toast('Učitavam PDF...', 'ok');
+  parsePdfOrderFile(file).then(function(parsed){
+    if(parsed.error){ toast(parsed.error, 'err'); return; }
+    if(!parsed.matched.length && !parsed.unmatched.length){ toast('Nema prepoznatih stavki u PDF-u', 'err'); return; }
+    prefillOrderFromPdf(parsed);
+  }).catch(function(e){
+    console.error(e);
+    toast('Greška pri čitanju PDF-a: '+(e.message||e), 'err');
+  });
+}
+function prefillOrderFromPdf(parsed){
+  openOrderModal(null);
+  if(parsed.storeId){
+    var sel = document.getElementById('o-store');
+    if(sel){
+      var has = false;
+      for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value===parsed.storeId){ has=true; break; } }
+      if(has){ sel.value = parsed.storeId; onOrderStoreChange(parsed.storeId); }
+    }
+  }
+  oiRows = parsed.matched.map(function(m){
+    var kom = m.kom||1, kgKom = m.kgKom||0;
+    return { prodId:m.prod.id, code:m.prod.code, name:m.prod.name, unit:m.prod.unit||'kg', kom:kom, kgKom:kgKom, qty:kom*kgKom };
+  });
+  renderOIRows();
+  if(parsed.unmatched.length){
+    toast('Iz PDF-a uneseno '+parsed.matched.length+' stavki. Nepronađeno u katalogu: '+parsed.unmatched.map(function(u){ return u.rawName; }).join(', '), 'err');
+  } else if(parsed.matched.length){
+    toast('Iz PDF-a uneseno '+parsed.matched.length+' stavki — provjerite i spremite narudžbu', 'ok');
+  }
 }
 
 // ============================================================
