@@ -115,7 +115,14 @@ button,input,select,textarea{font:inherit;color:inherit}
   display:flex;align-items:center;padding:0 28px;gap:14px;flex-shrink:0;
 }
 .topbar-title{font-size:19px;font-weight:700;color:var(--text);flex:1;letter-spacing:-.02em}
-.topbar-store-tag{background:rgba(0,122,255,.12);color:var(--blue);font-size:12px;font-weight:650;padding:4px 12px;border-radius:20px;white-space:nowrap}
+.topbar-store-tag{background:rgba(0,122,255,.12);color:var(--blue);font-size:12px;font-weight:650;padding:4px 12px;border-radius:20px;white-space:nowrap;
+  appearance:none;-webkit-appearance:none;border:none;font-family:inherit;cursor:pointer;outline:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007aff' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat:no-repeat;background-position:right 8px center;background-size:11px;padding-right:26px;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.topbar-store-tag option{background:var(--card-solid,#fff);color:var(--text)}
+.mob-theme-btn{background:var(--field);border:1px solid var(--line);color:var(--text2);width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;padding:0}
+.mob-logo{height:30px;width:30px;object-fit:contain;border-radius:8px;flex-shrink:0}
+.mob-theme-btn:active{background:var(--field2)}
 .topbar-btn,.btn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer;background:var(--field);color:var(--text);transition:transform .08s,filter .15s;white-space:nowrap;font-family:inherit;font-size:14px}
 .topbar-btn:active,.btn:active{transform:scale(.97)}
 .btn-primary,.btn.pri{background:var(--blue);color:#fff;box-shadow:0 6px 18px rgba(0,122,255,.28)}
@@ -526,6 +533,67 @@ textarea{resize:vertical;min-height:70px}
   .pb-export-btn{padding:4px 9px!important;font-size:12px!important}
 }
 
+
+/* ===== MOBILE OVERRIDES (Redmi Note 13 / ~393px) ===== */
+#sidebar{display:none!important}
+#mob-bar{display:flex!important;position:fixed;bottom:0;left:0;right:0;z-index:200}
+#main{width:100%!important}
+#content{padding:10px 10px 82px!important}
+.ap-grid{grid-template-columns:1fr!important}
+.tbl-hide-mob{display:none!important}
+
+/* Stats cards: 2 columns on mobile */
+.stats-row{grid-template-columns:1fr 1fr!important;gap:8px!important;margin-bottom:12px!important}
+.stat-card{padding:12px!important;border-radius:14px!important;gap:10px!important}
+.stat-icon{width:36px!important;height:36px!important;font-size:18px!important;border-radius:10px!important}
+.stat-label{font-size:11px!important}
+.stat-value{font-size:20px!important}
+.stat-sub{font-size:10px!important}
+
+/* Charts: stack vertically, compact height */
+.charts-grid{grid-template-columns:1fr!important;gap:10px!important;margin-bottom:12px!important}
+.chart-card{padding:12px!important;border-radius:14px!important}
+.chart-card canvas{max-height:180px!important}
+.chart-title{font-size:13px!important;margin-bottom:8px!important}
+
+/* Period bar: compact 2 rows */
+#period-bar{padding:5px 8px!important;gap:5px!important;flex-wrap:wrap!important}
+.pb-year{border-radius:9px!important}
+.pb-year-val{font-size:13px!important;padding:4px 8px!important;min-width:40px!important}
+.pb-arr{padding:4px 7px!important;font-size:16px!important}
+.pb-select{min-width:0!important;flex:1!important;font-size:12px!important;padding:4px 28px 4px 10px!important;border-radius:9px!important}
+.pb-select-wrap{flex:1!important}
+.pb-exports{margin-left:0!important;flex-wrap:wrap!important;gap:4px!important;width:100%!important}
+.pb-export-btn{padding:4px 8px!important;font-size:11.5px!important;border-radius:8px!important;flex:1!important;justify-content:center!important;min-width:0!important}
+
+/* Topbar */
+#topbar{height:48px!important;padding:0 10px!important;gap:6px!important}
+.mob-logo{height:26px!important;width:26px!important}
+.topbar-store-tag{max-width:88px!important;font-size:11px!important;padding:4px 22px 4px 10px!important;background-position:right 6px center!important;background-size:9px!important}
+.topbar-title{font-size:13px!important}
+#topbar-actions .topbar-btn{padding:6px 10px!important;font-size:11.5px!important}
+#topbar-actions .topbar-btn span,#topbar-actions .topbar-btn{white-space:nowrap}
+
+/* Cards & typography */
+.card{border-radius:14px!important;padding:14px!important}
+.section-title{font-size:14px!important;margin-bottom:10px!important}
+.tbl-wrap{border-radius:10px!important;font-size:12px!important}
+th,td{padding:8px 8px!important}
+
+/* Hero */
+.hero{margin:0 0 8px!important;border-radius:14px!important;padding:12px 14px!important}
+.hero .hv{font-size:17px!important}
+
+/* Filter rows */
+.filter-row{flex-wrap:wrap!important;gap:6px!important}
+.filter-row select,.filter-row input{flex:1 1 calc(50% - 3px)!important;min-width:0!important;font-size:12px!important}
+.search-wrap{flex:1 1 100%!important}
+.tbl-toolbar{flex-wrap:wrap!important;gap:6px!important;padding:10px!important}
+.tbl-toolbar .btn{font-size:12px!important;padding:5px 10px!important}
+
+/* Form grids */
+.form-grid{grid-template-columns:1fr!important;gap:10px!important}
+.form-grid-3{grid-template-columns:1fr 1fr!important;gap:10px!important}
 </style>
 </head>
 <body>
@@ -610,9 +678,15 @@ textarea{resize:vertical;min-height:70px}
 
 <div id="main">
   <div id="topbar">
+    <img id="mob-logo-img" class="mob-logo" alt="" style="display:none">
     <div class="topbar-title" id="page-title">Dashboard</div>
-    <div class="topbar-store-tag" id="store-tag">Sve lokacije</div>
+    <select class="topbar-store-tag" id="store-tag" onchange="switchStore(this.value)">
+      <option value="all">Sve lokacije</option>
+    </select>
     <div id="topbar-actions"></div>
+    <button class="mob-theme-btn" onclick="toggleDark()" aria-label="Tamni prikaz">
+      <svg id="mob-theme-icon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
   </div>
   <div id="period-bar">
     <div class="pb-year">
@@ -990,8 +1064,9 @@ function updateTopbarActions(page){
 function switchStore(val){
   CURRENT_STORE = val;
   var tag = document.getElementById('store-tag');
-  if(val==='all') tag.textContent='Sve lokacije';
-  else{ var s=DB.strojevi.find(function(s){return s.id===val;}); tag.textContent=s?s.id+' '+s.name:val; }
+  if(tag) tag.value = val;
+  var sel = document.getElementById('store-sel');
+  if(sel) sel.value = val;
   showPage(CURRENT_PAGE);
 }
 
@@ -1003,13 +1078,22 @@ function updateBadges(){
 
 function populateStoreSelect(){
   var sel = document.getElementById('store-sel');
-  sel.innerHTML = '<option value="all">— Sve lokacije —</option>';
+  var tag = document.getElementById('store-tag');
+  if(sel) sel.innerHTML = '<option value="all">— Sve lokacije —</option>';
+  if(tag) tag.innerHTML = '<option value="all">Sve lokacije</option>';
   DB.strojevi.forEach(function(s){
-    var opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = s.id+' '+s.name;
-    if(s.id===CURRENT_STORE) opt.selected=true;
-    sel.appendChild(opt);
+    if(sel){
+      var opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.id+' '+s.name;
+      if(s.id===CURRENT_STORE) opt.selected=true;
+      sel.appendChild(opt);
+    }
+    if(tag){
+      var opt2 = document.createElement('option');
+      opt2.value = s.id; opt2.textContent = s.id+' '+s.name;
+      if(s.id===CURRENT_STORE) opt2.selected=true;
+      tag.appendChild(opt2);
+    }
   });
 }
 
@@ -1019,9 +1103,9 @@ function populateStoreSelect(){
 function refreshLogo(){
   var logo = DB.settings.logoDataUrl;
   var img = document.getElementById('sb-logo-img');
-  if(!img) return;
-  if(logo){ img.src=logo; img.style.display='block'; }
-  else{ img.style.display='none'; }
+  if(img){ if(logo){ img.src=logo; img.style.display='block'; } else { img.style.display='none'; } }
+  var mimg = document.getElementById('mob-logo-img');
+  if(mimg){ if(logo){ mimg.src=logo; mimg.style.display='block'; } else { mimg.style.display='none'; } }
 }
 
 // ============================================================
@@ -1036,10 +1120,12 @@ function toggleDark(){
 }
 function updateThemeBtn(){
   var dark = document.documentElement.getAttribute('data-theme')==='dark';
-  document.getElementById('theme-label').textContent = dark?'Svjetli prikaz':'Tamni prikaz';
-  document.getElementById('theme-icon').innerHTML = dark?
+  var iconSvg = dark?
     '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>':
     '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+  var lbl = document.getElementById('theme-label'); if(lbl) lbl.textContent = dark?'Svjetli prikaz':'Tamni prikaz';
+  var ic = document.getElementById('theme-icon'); if(ic) ic.innerHTML = iconSvg;
+  var mic = document.getElementById('mob-theme-icon'); if(mic) mic.innerHTML = iconSvg;
 }
 
 // ============================================================
@@ -2854,6 +2940,9 @@ function seedProducts(){
   ];
 }
 
+// ============================================================
+// DEMO PODACI (za pregled grafikona) — pokreće se samo ako baza nema narudžbi/izdatnica
+// ============================================================
 function seedDemoOrders(){
   if(DB.orders.length || DB.izdatnice.length) return;
   var prods = DB.products;
@@ -2956,7 +3045,6 @@ function patchLogoV3(){
   DB.settings._logoPatchedV3 = true;
   saveDB();
 }
-
 
 // ============================================================
 // PRODUCT COLOR LOOKUP
