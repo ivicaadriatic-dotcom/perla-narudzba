@@ -1,23 +1,22 @@
-// Perla Notte Narudžbenica — Service Worker je UKLONJEN iz aplikacije (v1.2.0).
-// Ova se datoteka namjerno ostavlja na istoj adresi samo zato da svaki uređaj
-// na kojem je stara verzija SW-a ostala aktivna, dohvati OVU verziju, sam sebe
-// ugasi, obriše cache i ponovno učita stranicu izravno s mreže.
+// Perla Notte Narudžbenica — Service Worker (v1.5.0)
+// NAMJERNO ne sprema NIŠTA u cache — svaki zahtjev ide izravno na mrežu.
+// Jedina mu je svrha zadovoljiti Android/Chrome kriterij za instalaciju
+// aplikacije (Add to Home Screen kao prava app, a ne obična prečica).
+// Time je isključen svaki rizik od zastarjelog/keširanog sadržaja koji je
+// uzrokovao ranije probleme (v1.1.x).
+
 self.addEventListener('install', function(event){
   self.skipWaiting();
 });
 
 self.addEventListener('activate', function(event){
   event.waitUntil(
-    self.registration.unregister()
-      .then(function(){ return caches.keys(); })
+    caches.keys()
       .then(function(names){ return Promise.all(names.map(function(n){ return caches.delete(n); })); })
-      .then(function(){ return self.clients.matchAll({type:'window'}); })
-      .then(function(clients){
-        clients.forEach(function(client){ client.navigate(client.url); });
-      })
+      .then(function(){ return self.clients.claim(); })
   );
 });
 
 self.addEventListener('fetch', function(event){
-  // Ne presreće ništa — sve ide izravno na mrežu dok se gašenje ne dovrši.
+  event.respondWith(fetch(event.request));
 });
