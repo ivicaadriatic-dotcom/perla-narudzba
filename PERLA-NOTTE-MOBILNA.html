@@ -672,7 +672,7 @@ th,td{padding:8px 8px!important}
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       <span>Odjava</span>
     </div>
-    <div class="sb-version">Perla Notte Narudžbenica · v1.5.1 (04.10.2026)</div>
+    <div class="sb-version">Perla Notte Narudžbenica · v1.5.2 (04.10.2026)</div>
   </div>
 </div>
 
@@ -749,7 +749,7 @@ function freshDB(){
 
 var DB = freshDB();
 var CURRENT_STORE = 'all';
-var APP_VERSION = '1.5.1';
+var APP_VERSION = '1.5.2';
 var APP_VERSION_DATE = '04.10.2026';
 
 // ============================================================
@@ -842,6 +842,26 @@ try{
     sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
 }catch(e){ sbClient = null; }
+
+function syncItemCodesWithCatalog(){
+  // Svaka stavka narudžbe/izdatnice ima svoju "snimljenu" šifru (code) iz trenutka kad je dodana.
+  // Ovo je uskladi sa STVARNIM trenutnim šiframa iz kataloga Artikala (po prodId), tako da se
+  // šifra u narudžbama uvijek "generira" iz baze artikala, a ne ostane zamrznuta na staroj vrijednosti.
+  var changed = false;
+  var byId = {};
+  DB.products.forEach(function(p){ byId[p.id] = p; });
+  function syncList(list){
+    (list||[]).forEach(function(rec){
+      (rec.items||[]).forEach(function(it){
+        var p = (it.prodId!=null) ? byId[it.prodId] : null;
+        if(p && p.code && it.code !== p.code){ it.code = p.code; changed = true; }
+      });
+    });
+  }
+  syncList(DB.orders);
+  syncList(DB.izdatnice);
+  return changed;
+}
 
 function isRemoteDataEmpty(d){
   if(!d) return true;
@@ -2788,7 +2808,7 @@ function deleteStroj(id){
 // ============================================================
 function renderSettings(){
   var cfg = DB.settings;
-  var html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Verzija aplikacije: <b style="color:var(--text2)">v1.5.1</b> &nbsp;·&nbsp; 30.09.2026</div>'+
+  var html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Verzija aplikacije: <b style="color:var(--text2)">v1.5.2</b> &nbsp;·&nbsp; 30.09.2026</div>'+
   '<div class="form-grid-3" style="grid-template-columns:1fr 1fr;gap:20px">'+
   '<div class="card"><div class="card-header"><div class="card-title">Kupac (Perla Notte)</div></div><div class="card-body"><div class="form-grid">'+
     '<div class="form-group full"><label>Naziv tvrtke</label><input id="s-bn" value="'+esc(cfg.buyerName)+'"></div>'+
@@ -3168,7 +3188,8 @@ function startApp(){
     var AUTO_PLACEHOLDERS = ['FIT STUDIO SPLIT','POWER GYM','ENERGY FIT','SPORT CLUB','OLIMP GYM','TITAN FITNESS','PRIME SPORT','FLEX GYM','IRON HOUSE','APEX FITNESS','CROSSFIT CENTER','BODY LAB','WELLNESS CLUB','ARENA SPORT'];
     DB.strojevi = DB.strojevi.filter(function(s){ return s.id==='VS-001' || !AUTO_PLACEHOLDERS.includes(s.name) || s.addr; });
     if(!DB.fakture) DB.fakture = [];
-    saveDBLocalOnly();
+    var _codesFixed = syncItemCodesWithCatalog();
+    if(_codesFixed){ saveDB(); } else { saveDBLocalOnly(); }
     populateStoreSelect();
     refreshLogo();
     renderPeriodBar();
@@ -3245,7 +3266,7 @@ function openMoreMenu(){
     '<button class="topbar-btn btn-ghost" style="justify-content:flex-start;padding:14px 16px;width:100%;font-size:14px;color:var(--red)" onclick="closeModal();authSignOut()">'+
       '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'+
       '&nbsp;&nbsp;Odjava</button>'+
-    '<div class="sb-version" style="padding-top:14px">Perla Notte Narudžbenica · v1.5.1 (04.10.2026)</div>'+
+    '<div class="sb-version" style="padding-top:14px">Perla Notte Narudžbenica · v1.5.2 (04.10.2026)</div>'+
   '</div>';
   openModal('IZBORNIK', 'Više opcija', html);
   setMobActive(document.getElementById('mob-tab-more'));
